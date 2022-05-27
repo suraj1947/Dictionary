@@ -23,4 +23,8 @@ public class DictionaryService {
   public void delete(Word word) {
     dictionaryRepository.delete(word);
   }
+
+  public void update(Word actualWord, String newWord) {
+    dictionaryRepository.updateWord(actualWord.getWord(),newWord);
+  }
 }

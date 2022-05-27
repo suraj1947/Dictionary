@@ -21,11 +21,17 @@ class DictionaryServiceShould {
     verify(dictionaryRepository).findAll();
   }
 
+
   @Test
   void save_new_word() {
     Word word = new Word("new");
     dictionaryService.saveNewWord(word);
     verify(dictionaryRepository).save(word);
   }
-
+  @Test
+  void update_word() {
+    Word word = new Word("new");
+    dictionaryService.update(word,"update");
+    verify(dictionaryRepository).updateWord(word.getWord(),"update");
+  }
 }

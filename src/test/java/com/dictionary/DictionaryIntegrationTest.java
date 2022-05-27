@@ -10,6 +10,7 @@ import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
@@ -23,11 +24,15 @@ public class DictionaryIntegrationTest {
   @Inject
   @Client("/")
   HttpClient httpClient;
+  @Inject
+  DictionaryRepository dictionaryRepository;
   Word word1;
   Word word2;
+  List<Word> wordsInDb;
 
   @BeforeEach
   void setup() {
+    wordsInDb = new ArrayList<>();
     word1 = new Word("word1");
     word1.setWord("word1");
     word1 = httpClient.toBlocking()
@@ -36,13 +41,17 @@ public class DictionaryIntegrationTest {
     word2.setWord("word2");
     word2 = httpClient.toBlocking()
         .retrieve(HttpRequest.POST("/dictionary", word2), Argument.of(Word.class));
+    wordsInDb.add(word1);
+    wordsInDb.add(word2);
   }
 
   @AfterEach
   void clear() {
     List<Word> words = httpClient.toBlocking()
         .retrieve(HttpRequest.GET("dictionary"), Argument.listOf(Word.class));
-
+//    dictionaryRepository.deleteAll(wordsInDb);
+    words.forEach((word -> httpClient.toBlocking()
+        .retrieve(HttpRequest.DELETE("dictionary", word), Argument.of(Word.class))));
   }
 
   @Test
@@ -51,6 +60,12 @@ public class DictionaryIntegrationTest {
     word = httpClient.toBlocking()
         .retrieve(HttpRequest.POST("dictionary", word), Argument.of(Word.class));
     assertThat(word.getWord()).isEqualTo("new");
+    List<Word> receivedWords = httpClient.toBlocking().retrieve(HttpRequest.GET("dictionary"),
+        Argument.listOf(Word.class));
+    List<String> actualWords = receivedWords.stream().map(Word::getWord)
+        .collect(Collectors.toList());
+    List<String> expectedWords = List.of("word1", "word2","new");
+    assertThat(expectedWords).containsExactlyInAnyOrderElementsOf(actualWords);
   }
 
   @Test
@@ -74,14 +89,14 @@ public class DictionaryIntegrationTest {
     assertFalse(wordsInDB.contains("word1"));
   }
 
+  @Test
   void update_existing_word_in_db() {
-    Word actualWord = new Word("new");
     httpClient.toBlocking()
-        .retrieve(HttpRequest.PUT("dictionary/update", actualWord), Argument.of(Word.class));
+        .retrieve(HttpRequest.PUT("dictionary/update", word1), Argument.of(Word.class));
     List<Word> receivedWords = httpClient.toBlocking()
         .retrieve(HttpRequest.GET("dictionary"), Argument.listOf(Word.class));
     List<String> wordsInDB = receivedWords.stream().map(Word::getWord).collect(Collectors.toList());
     assertFalse(wordsInDB.contains("word1"));
-    assertTrue(wordsInDB.contains("new"));
+    assertTrue(wordsInDB.contains("update"));
   }
 }

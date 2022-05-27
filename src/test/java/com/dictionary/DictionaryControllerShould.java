@@ -42,4 +42,11 @@ public class DictionaryControllerShould {
     dictionaryController.delete(word);
     verify(dictionaryService).delete(word);
   }
+
+  @Test
+  void update_word(){
+    Word actualWord = new Word("delete");
+    dictionaryController.update(actualWord,"update");
+    verify(dictionaryService).update(actualWord,"update");
+  }
 }
